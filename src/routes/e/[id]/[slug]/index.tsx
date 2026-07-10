@@ -15,6 +15,7 @@ import {
 } from "~/lib/db";
 import { getEnv } from "~/lib/platform";
 import { formatDate, slotLabel } from "~/lib/format";
+import { ShareQr } from "~/components/share-qr/share-qr";
 
 export const useEventData = routeLoader$(async (ev) => {
   const env = await getEnv(ev);
@@ -26,7 +27,11 @@ export const useEventData = routeLoader$(async (ev) => {
     throw ev.redirect(302, eventPath(event));
   }
   const slots = await getSlotsWithCounts(env, event.id);
-  return { event, slots };
+  return {
+    event,
+    slots,
+    shareUrl: new URL(eventPath(event), ev.url.origin).href,
+  };
 });
 
 export const useSignup = routeAction$(
@@ -73,7 +78,7 @@ export const useSignup = routeAction$(
 export default component$(() => {
   const data = useEventData();
   const signup = useSignup();
-  const { event, slots } = data.value;
+  const { event, slots, shareUrl } = data.value;
   const done = signup.value?.success === true;
 
   return (
@@ -119,6 +124,20 @@ export default component$(() => {
                 The PTA will be in touch nearer the time. Thank you for
                 supporting our school!
               </p>
+              <div class="border-plum-100 mt-6 rounded-xl border bg-white p-5 text-left">
+                <h3 class="text-plum-700 font-bold">
+                  Know someone else who could help?
+                </h3>
+                <p class="mt-1 mb-4 text-sm text-gray-500">
+                  Pass the signup page on — they can scan the QR code or you can
+                  share it straight from here.
+                </p>
+                <ShareQr
+                  url={shareUrl}
+                  title={`Volunteer: ${event.name}`}
+                  text={`Can you lend a hand at ${event.name}? Pick a slot here:`}
+                />
+              </div>
             </div>
           ) : (
             <Form action={signup} class="space-y-6">

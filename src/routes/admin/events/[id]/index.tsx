@@ -17,6 +17,7 @@ import {
 } from "~/lib/db";
 import { getEnv } from "~/lib/platform";
 import { formatDate, slotLabel } from "~/lib/format";
+import { ShareQr } from "~/components/share-qr/share-qr";
 
 export const useEventDetail = routeLoader$(async (ev) => {
   const env = await getEnv(ev);
@@ -114,6 +115,13 @@ export default component$(() => {
           >
             Preview
           </a>
+        </div>
+        <div class="border-plum-100 mt-4 border-t pt-4">
+          <ShareQr
+            url={shareUrl}
+            title={`Volunteer: ${event.name}`}
+            text={`Can you lend a hand at ${event.name}? Pick a slot here:`}
+          />
         </div>
       </div>
 
