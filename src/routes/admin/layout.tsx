@@ -50,6 +50,7 @@ export default component$(() => {
         <div class="flex items-center gap-4">
           <Link
             href="/admin/"
+            aria-current={!isNew ? "page" : undefined}
             class={[
               "font-semibold",
               !isNew ? "text-plum-700" : "hover:text-plum-700 text-gray-500",
@@ -59,6 +60,7 @@ export default component$(() => {
           </Link>
           <Link
             href="/admin/new/"
+            aria-current={isNew ? "page" : undefined}
             class={[
               "font-semibold",
               isNew ? "text-plum-700" : "hover:text-plum-700 text-gray-500",

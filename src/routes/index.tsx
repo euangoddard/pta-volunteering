@@ -5,7 +5,10 @@ export default component$(() => {
   return (
     <div class="mx-auto max-w-xl text-center">
       <div class="border-plum-100 rounded-2xl border bg-white p-8 shadow-sm sm:p-10">
-        <div class="bg-flame-100 mx-auto mb-5 flex size-16 items-center justify-center rounded-full text-3xl">
+        <div
+          class="bg-flame-100 mx-auto mb-5 flex size-16 items-center justify-center rounded-full text-3xl"
+          aria-hidden="true"
+        >
           🙌
         </div>
         <h1 class="text-plum-700 text-2xl font-bold sm:text-3xl">

@@ -37,3 +37,28 @@
 body {
   @apply bg-plum-50 font-sans text-gray-800 antialiased;
 }
+
+@layer base {
+  /* Tailwind 4 preflight sets `cursor: default` on buttons. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Keyboard focus indicator; passes 3:1 on both plum-50 and plum-700. */
+  :focus-visible {
+    outline: 2px solid var(--color-flame-500);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -83,7 +83,7 @@ export default component$(() => {
               for="name"
               class="mb-1 block text-sm font-semibold text-gray-700"
             >
-              Event name *
+              Event name
             </label>
             <input
               id="name"
@@ -105,7 +105,7 @@ export default component$(() => {
                 for="event_date"
                 class="mb-1 block text-sm font-semibold text-gray-700"
               >
-                Date *
+                Date
               </label>
               <input
                 id="event_date"
@@ -208,7 +208,7 @@ export default component$(() => {
                   </div>
                   <div>
                     <label class="mb-1 block text-xs font-semibold text-gray-600">
-                      Start *
+                      Start
                     </label>
                     <input
                       type="time"
@@ -219,7 +219,7 @@ export default component$(() => {
                   </div>
                   <div>
                     <label class="mb-1 block text-xs font-semibold text-gray-600">
-                      End *
+                      End
                     </label>
                     <input
                       type="time"
@@ -230,7 +230,7 @@ export default component$(() => {
                   </div>
                   <div>
                     <label class="mb-1 block text-xs font-semibold text-gray-600">
-                      Helpers needed *
+                      Helpers needed
                     </label>
                     <input
                       type="number"
@@ -248,7 +248,10 @@ export default component$(() => {
         </section>
 
         {action.value?.failed && action.value?.message && (
-          <p class="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700">
+          <p
+            role="alert"
+            class="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700"
+          >
             {action.value.message}
           </p>
         )}

@@ -88,6 +88,8 @@ export const ShareQr = component$<ShareQrProps>(({ url, title, text }) => {
   return (
     <div class="flex flex-col items-center gap-4 sm:flex-row">
       <div
+        role="img"
+        aria-label="QR code linking to the signup page"
         class="border-plum-100 w-36 shrink-0 rounded-xl border bg-white p-2 shadow-sm [&>svg]:h-auto [&>svg]:w-full"
         dangerouslySetInnerHTML={qrSvg(url)}
       />

@@ -1,11 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
-  "name": "PTA Volunteering · Sandhills Community Primary School",
+  "name": "PTA Volunteering \u00b7 Sandhills Community Primary School",
   "short_name": "Sandhills PTA",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#fff",
-  "theme_color": "#761212",
+  "background_color": "#faf3f5",
+  "theme_color": "#571226",
   "description": "PTA event volunteering signups for Sandhills Community Primary School",
   "icons": [
     {

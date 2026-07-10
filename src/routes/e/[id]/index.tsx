@@ -1,16 +1,28 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import { component$ } from "@builder.io/qwik";
+import type { DocumentHead, RequestHandler } from "@builder.io/qwik-city";
 import { getCanonicalSlug } from "~/lib/db";
 import { getEnv } from "~/lib/platform";
+import { EventNotFound } from "~/components/event-not-found/event-not-found";
 
 /**
  * Shared links sometimes get truncated to just the id. Look up the canonical
- * slug in KV and redirect to the full signup URL.
+ * slug in KV and redirect to the full signup URL. Unknown ids fall through to
+ * a friendly "event not found" page (with a 404 status).
  */
 export const onGet: RequestHandler = async (ev) => {
   const env = await getEnv(ev);
   const slug = await getCanonicalSlug(env, ev.params.id);
-  if (!slug) {
-    throw ev.error(404, "Event not found");
+  if (slug) {
+    throw ev.redirect(302, `/e/${ev.params.id}/${slug}/`);
   }
-  throw ev.redirect(302, `/e/${ev.params.id}/${slug}/`);
+  ev.status(404);
+};
+
+export default component$(() => {
+  return <EventNotFound />;
+});
+
+export const head: DocumentHead = {
+  title: "Event not found · Sandhills PTA",
+  meta: [{ name: "robots", content: "noindex" }],
 };

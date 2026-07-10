@@ -16,18 +16,22 @@ import {
 import { getEnv } from "~/lib/platform";
 import { formatDate, slotLabel } from "~/lib/format";
 import { ShareQr } from "~/components/share-qr/share-qr";
+import { EventNotFound } from "~/components/event-not-found/event-not-found";
 
 export const useEventData = routeLoader$(async (ev) => {
   const env = await getEnv(ev);
   const event = await getEvent(env, ev.params.id);
   if (!event) {
-    throw ev.error(404, "Event not found");
+    // Render a friendly dead-end rather than a bare error response.
+    ev.status(404);
+    return { notFound: true as const };
   }
   if (event.slug !== ev.params.slug) {
     throw ev.redirect(302, eventPath(event));
   }
   const slots = await getSlotsWithCounts(env, event.id);
   return {
+    notFound: false as const,
     event,
     slots,
     shareUrl: new URL(eventPath(event), ev.url.origin).href,
@@ -57,7 +61,9 @@ export const useSignup = routeAction$(
     if (confirmed.length === 0) {
       return ev.fail(409, {
         message:
-          "Sorry — the slot(s) you picked just filled up. Please choose another time.",
+          full.length > 1
+            ? "Sorry — the slots you picked have just filled up. Please choose another time."
+            : "Sorry — that slot just filled up. Please choose another time.",
       });
     }
     return { success: true as const, name: data.name.trim(), confirmed, full };
@@ -78,6 +84,9 @@ export const useSignup = routeAction$(
 export default component$(() => {
   const data = useEventData();
   const signup = useSignup();
+  if (data.value.notFound) {
+    return <EventNotFound />;
+  }
   const { event, slots, shareUrl } = data.value;
   const done = signup.value?.success === true;
 
@@ -104,7 +113,9 @@ export default component$(() => {
 
           {done ? (
             <div class="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
-              <div class="text-4xl">🎉</div>
+              <div class="text-4xl" aria-hidden="true">
+                🎉
+              </div>
               <h2 class="mt-2 text-xl font-bold text-green-800">
                 Thank you, {signup.value?.name}!
               </h2>
@@ -143,8 +154,15 @@ export default component$(() => {
             <Form action={signup} class="space-y-6">
               <fieldset>
                 <legend class="text-plum-700 text-lg font-bold">
-                  1. Pick your time slot(s)
+                  {slots.length > 1
+                    ? "1. Pick your time slots"
+                    : "1. Pick your time slot"}
                 </legend>
+                {slots.length > 1 && (
+                  <p class="mt-1 text-sm text-gray-500">
+                    Tick as many as you like.
+                  </p>
+                )}
                 <div class="mt-3 space-y-2">
                   {slots.map((slot) => {
                     const remaining = slot.capacity - slot.volunteer_count;
@@ -155,7 +173,7 @@ export default component$(() => {
                         class={[
                           "flex items-center gap-3 rounded-xl border p-4 transition",
                           isFull
-                            ? "border-gray-200 bg-gray-50 opacity-60"
+                            ? "border-gray-200 bg-gray-50"
                             : "border-plum-200 hover:border-flame-400 hover:bg-flame-50 cursor-pointer bg-white",
                         ]}
                       >
@@ -167,7 +185,12 @@ export default component$(() => {
                           class="accent-flame-600 size-5"
                         />
                         <span class="grow">
-                          <span class="block font-semibold text-gray-800">
+                          <span
+                            class={[
+                              "block font-semibold",
+                              isFull ? "text-gray-500" : "text-gray-800",
+                            ]}
+                          >
                             {slotLabel(slot)}
                           </span>
                           <span
@@ -208,7 +231,7 @@ export default component$(() => {
                     for="name"
                     class="mb-1 block text-sm font-semibold text-gray-700"
                   >
-                    Your name *
+                    Your name
                   </label>
                   <input
                     id="name"
@@ -229,7 +252,7 @@ export default component$(() => {
                     for="email"
                     class="mb-1 block text-sm font-semibold text-gray-700"
                   >
-                    Email address *
+                    Email address
                   </label>
                   <input
                     id="email"
@@ -250,7 +273,7 @@ export default component$(() => {
                     for="phone"
                     class="mb-1 block text-sm font-semibold text-gray-700"
                   >
-                    Phone *
+                    Phone number
                   </label>
                   <input
                     id="phone"
@@ -285,7 +308,10 @@ export default component$(() => {
               </fieldset>
 
               {signup.value?.failed && signup.value?.message && (
-                <p class="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700">
+                <p
+                  role="alert"
+                  class="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700"
+                >
                   {signup.value.message}
                 </p>
               )}
@@ -306,7 +332,14 @@ export default component$(() => {
 });
 
 export const head: DocumentHead = ({ resolveValue }) => {
-  const { event } = resolveValue(useEventData);
+  const data = resolveValue(useEventData);
+  if (data.notFound) {
+    return {
+      title: "Event not found · Sandhills PTA",
+      meta: [{ name: "robots", content: "noindex" }],
+    };
+  }
+  const { event } = data;
   return {
     title: `Volunteer: ${event.name} · Sandhills PTA`,
     meta: [
