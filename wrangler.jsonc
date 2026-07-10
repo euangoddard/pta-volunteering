@@ -3,54 +3,51 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "pta-volunteering",
-	"main": "./dist/_worker.js",
-	"compatibility_date": "2025-12-28",
-	"compatibility_flags": [
-		"nodejs_compat",
-		"global_fetch_strictly_public"
-	],
-	"assets": {
-		"binding": "ASSET",
-		"directory": "./dist",
-	},
-	"observability": {
-		"enabled": true,
-	},
-	/**
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pta-volunteering",
+  "main": "./dist/_worker.js",
+  "compatibility_date": "2026-07-10",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSET",
+    "directory": "./dist",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  /**
    * D1 database holding events, time slots and volunteer signups.
    * Locally this is backed by a SQLite file under .wrangler/state — run
    * `npm run db:migrate` to create/update it. Before deploying, run
    * `wrangler d1 create pta-volunteering` and paste the real database_id here.
    */
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "pta-volunteering",
-			"database_id": "182f664f-9c91-4765-a2a6-a82d37869748",
-			"migrations_dir": "migrations",
-		},
-	],
-	/**
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pta-volunteering",
+      "database_id": "182f664f-9c91-4765-a2a6-a82d37869748",
+      "migrations_dir": "migrations",
+    },
+  ],
+  /**
    * KV namespace, used as a lookup of event id -> slug so shared links with a
    * stale/mistyped slug can still be resolved. Locally backed by
    * .wrangler/state. Before deploying, run
    * `wrangler kv namespace create EVENT_LINKS` and paste the real id here.
    */
-	"kv_namespaces": [
-		{
-			"binding": "EVENT_LINKS",
-			"id": "984f3b6b8dc24a2186e53d8ea5ff67aa",
-		},
-	],
-	"routes": [
-		{
-			"pattern": "pta-volunteering.euans.space",
-			"custom_domain": true
-		},
-	],
-	/**
+  "kv_namespaces": [
+    {
+      "binding": "EVENT_LINKS",
+      "id": "984f3b6b8dc24a2186e53d8ea5ff67aa",
+    },
+  ],
+  "routes": [
+    {
+      "pattern": "pta-volunteering.euans.space",
+      "custom_domain": true,
+    },
+  ],
+  /**
    * Admin basic-auth credentials.
    * Locally these come from `.dev.vars` (see `.dev.vars.example`).
    * In production set them as secrets:
