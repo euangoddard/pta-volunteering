@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/*
+ * Sandhills Community Primary School brand
+ * Primary: deep plum/burgundy #571226 · Accent: burnt orange #c64d08
+ * Typeface: Open Sans
+ */
+@theme {
+  --font-sans:
+    "Open Sans", "Segoe UI", Tahoma, Geneva, ui-sans-serif, sans-serif;
+
+  --color-plum-50: #faf3f5;
+  --color-plum-100: #f3e0e6;
+  --color-plum-200: #e6bec9;
+  --color-plum-300: #d391a4;
+  --color-plum-400: #b95d78;
+  --color-plum-500: #9c3a58;
+  --color-plum-600: #811b38;
+  --color-plum-700: #571226;
+  --color-plum-800: #450e1e;
+  --color-plum-900: #2d0914;
+  --color-plum-950: #1d0509;
+
+  --color-flame-50: #fff5ee;
+  --color-flame-100: #ffe7d4;
+  --color-flame-200: #fecba8;
+  --color-flame-300: #fda671;
+  --color-flame-400: #fa7738;
+  --color-flame-500: #e05a0c;
+  --color-flame-600: #c64d08;
+  --color-flame-700: #a43f07;
+  --color-flame-800: #83330a;
+  --color-flame-900: #6b2a0b;
+  --color-flame-950: #3a1504;
+}
+
+body {
+  @apply bg-plum-50 font-sans text-gray-800 antialiased;
+}
