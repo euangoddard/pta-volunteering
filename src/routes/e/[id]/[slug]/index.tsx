@@ -44,7 +44,7 @@ export const useSignup = routeAction$(
     const results = await addVolunteer(env, event.id, data.slotIds ?? [], {
       name: data.name.trim(),
       email: data.email.trim(),
-      phone: data.phone?.trim() ?? "",
+      phone: data.phone.trim(),
       note: data.note?.trim() ?? "",
     });
     const slots = await getSlotsWithCounts(env, event.id);
@@ -65,7 +65,7 @@ export const useSignup = routeAction$(
   zod$({
     name: z.string().trim().min(1, "Please tell us your name"),
     email: z.string().trim().email("Please enter a valid email address"),
-    phone: z.string().optional(),
+    phone: z.string().trim().min(1, "Please enter your phone number"),
     note: z.string().max(500).optional(),
     slotIds: z
       .array(z.string())
@@ -250,16 +250,21 @@ export default component$(() => {
                     for="phone"
                     class="mb-1 block text-sm font-semibold text-gray-700"
                   >
-                    Phone{" "}
-                    <span class="font-normal text-gray-400">(optional)</span>
+                    Phone *
                   </label>
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
+                    required
                     autocomplete="tel"
                     class="focus:border-flame-500 focus:ring-flame-200 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:outline-none"
                   />
+                  {signup.value?.fieldErrors?.phone && (
+                    <p class="mt-1 text-sm text-red-600">
+                      {signup.value.fieldErrors.phone}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label
