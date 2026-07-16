@@ -28,6 +28,11 @@ and [Cloudflare Workers](https://workers.cloudflare.com/), storing data in
 - **Basic-auth admin** — `/admin/` lists events, creates events with dynamic
   slot rows, shows the shareable link (copy button), the volunteer roster per
   slot, and supports removing volunteers / deleting events.
+- **Event groups** — each event can belong to at most one group. A group has
+  its own hard-to-guess shareable link (`/g/<id>/<slug>/`, with the same QR /
+  copy / share tools as events) whose landing page lists the group's events
+  chronologically; past events are hidden behind a toggle and shown greyed
+  out. Deleting a group keeps its events.
 
 ## Local development
 
@@ -96,7 +101,9 @@ After changing bindings in `wrangler.jsonc`, regenerate types with
 │       ├── index.tsx              Public landing page
 │       ├── e/[id]/                id-only link → canonical URL (via KV)
 │       ├── e/[id]/[slug]/         Public signup page (no auth)
-│       └── admin/                 Basic-auth admin (list / new / detail)
+│       ├── g/[id]/                id-only group link → canonical URL (via KV)
+│       ├── g/[id]/[slug]/         Public group page: the group's events (no auth)
+│       └── admin/                 Basic-auth admin (events + groups: list / new / detail)
 └── wrangler.jsonc         Worker config: D1 + KV bindings, assets
 ```
 

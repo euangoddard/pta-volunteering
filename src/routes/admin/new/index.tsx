@@ -1,9 +1,24 @@
 import { component$, useStore } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
-import { Form, routeAction$, zod$, z } from "@builder.io/qwik-city";
+import {
+  Form,
+  routeAction$,
+  routeLoader$,
+  zod$,
+  z,
+} from "@builder.io/qwik-city";
 import type { NewSlot } from "~/lib/db";
-import { createEvent } from "~/lib/db";
+import { createEvent, getGroup, listGroups } from "~/lib/db";
 import { getEnv } from "~/lib/platform";
+
+export const useGroupOptions = routeLoader$(async (ev) => {
+  const env = await getEnv(ev);
+  return {
+    groups: await listGroups(env),
+    // /admin/new/?group=<id> preselects the group (linked from group pages).
+    preselected: ev.url.searchParams.get("group") ?? "",
+  };
+});
 
 export const useCreateEvent = routeAction$(
   async (data, ev) => {
@@ -38,11 +53,16 @@ export const useCreateEvent = routeAction$(
       });
     }
     const env = await getEnv(ev);
+    const group_id = data.group_id || null;
+    if (group_id && !(await getGroup(env, group_id))) {
+      return ev.fail(400, { message: "That event group no longer exists." });
+    }
     const event = await createEvent(env, {
       name: data.name.trim(),
       description: data.description?.trim() ?? "",
       event_date: data.event_date,
       location: data.location?.trim() ?? "",
+      group_id,
       slots,
     });
     throw ev.redirect(302, `/admin/events/${event.id}/`);
@@ -54,6 +74,7 @@ export const useCreateEvent = routeAction$(
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Please pick a date for the event"),
     location: z.string().optional(),
+    group_id: z.string().optional(),
     slotLabel: z.array(z.string()).optional(),
     slotStart: z.array(z.string()).optional(),
     slotEnd: z.array(z.string()).optional(),
@@ -66,6 +87,7 @@ const inputClass =
 
 export default component$(() => {
   const action = useCreateEvent();
+  const groupOptions = useGroupOptions();
   const state = useStore({ nextKey: 1, rows: [0] });
 
   return (
@@ -153,6 +175,32 @@ export default component$(() => {
               class={inputClass}
             />
           </div>
+          {groupOptions.value.groups.length > 0 && (
+            <div>
+              <label
+                for="group_id"
+                class="mb-1 block text-sm font-semibold text-gray-700"
+              >
+                Event group{" "}
+                <span class="font-normal text-gray-400">(optional)</span>
+              </label>
+              <select id="group_id" name="group_id" class={inputClass}>
+                <option value="">No group</option>
+                {groupOptions.value.groups.map((group) => (
+                  <option
+                    key={group.id}
+                    value={group.id}
+                    selected={group.id === groupOptions.value.preselected}
+                  >
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+              <p class="mt-1 text-sm text-gray-500">
+                Grouped events appear together on the group's shared page.
+              </p>
+            </div>
+          )}
         </section>
 
         <section>

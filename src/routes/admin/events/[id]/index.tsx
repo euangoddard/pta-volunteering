@@ -12,12 +12,15 @@ import {
   deleteEvent,
   eventPath,
   getEvent,
+  getGroup,
   getSlotsWithVolunteers,
+  listGroups,
   removeVolunteer,
+  setEventGroup,
 } from "~/lib/db";
 import { getEnv } from "~/lib/platform";
 import { formatDate, slotLabel } from "~/lib/format";
-import { ShareQr } from "~/components/share-qr/share-qr";
+import { ShareLinkCard } from "~/components/share-link-card/share-link-card";
 
 export const useEventDetail = routeLoader$(async (ev) => {
   const env = await getEnv(ev);
@@ -29,9 +32,23 @@ export const useEventDetail = routeLoader$(async (ev) => {
   return {
     event,
     slots,
+    groups: await listGroups(env),
     shareUrl: new URL(eventPath(event), ev.url.origin).href,
   };
 });
+
+export const useSetGroup = routeAction$(
+  async (data, ev) => {
+    const env = await getEnv(ev);
+    const groupId = data.groupId || null;
+    if (groupId && !(await getGroup(env, groupId))) {
+      return ev.fail(400, { message: "That event group no longer exists." });
+    }
+    await setEventGroup(env, ev.params.id, groupId);
+    return { success: true };
+  },
+  zod$({ groupId: z.string() }),
+);
 
 export const useRemoveVolunteer = routeAction$(
   async (data, ev) => {
@@ -52,9 +69,9 @@ export default component$(() => {
   const data = useEventDetail();
   const removeAction = useRemoveVolunteer();
   const deleteAction = useDeleteEvent();
-  const copied = useSignal(false);
+  const setGroupAction = useSetGroup();
   const confirmingDelete = useSignal(false);
-  const { event, slots, shareUrl } = data.value;
+  const { event, slots, groups, shareUrl } = data.value;
   const totalVolunteers = slots.reduce((n, s) => n + s.volunteer_count, 0);
   const totalCapacity = slots.reduce((n, s) => n + s.capacity, 0);
 
@@ -93,43 +110,70 @@ export default component$(() => {
         )}
       </div>
 
+      <ShareLinkCard
+        url={shareUrl}
+        heading="Shareable signup link"
+        description="Anyone with this link can sign up — no login needed. Share it via the newsletter or class group chats."
+        shareTitle={`Volunteer: ${event.name}`}
+        shareText={`Can you lend a hand at ${event.name}? Pick a slot here:`}
+      />
+
       <div class="border-plum-100 rounded-xl border bg-white p-5 shadow-sm">
-        <h2 class="text-plum-700 font-bold">Shareable signup link</h2>
+        <h2 class="text-plum-700 font-bold">Event group</h2>
         <p class="mt-1 text-sm text-gray-500">
-          Anyone with this link can sign up — no login needed. Share it via the
-          newsletter or class group chats.
+          Grouped events appear together on the group's shared page.
         </p>
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          <code class="bg-plum-50 text-plum-800 min-w-0 grow overflow-x-auto rounded-lg px-3 py-2 text-sm">
-            {shareUrl}
-          </code>
+        <Form
+          action={setGroupAction}
+          class="mt-3 flex flex-wrap items-center gap-2"
+        >
+          <label for="groupId" class="sr-only">
+            Event group
+          </label>
+          <select
+            id="groupId"
+            name="groupId"
+            class="focus:border-flame-500 focus:ring-flame-200 min-w-0 grow rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:outline-none"
+          >
+            <option value="" selected={event.group_id === null}>
+              No group
+            </option>
+            {groups.map((group) => (
+              <option
+                key={group.id}
+                value={group.id}
+                selected={group.id === event.group_id}
+              >
+                {group.name}
+              </option>
+            ))}
+          </select>
           <button
-            type="button"
-            onClick$={async () => {
-              await navigator.clipboard.writeText(shareUrl);
-              copied.value = true;
-              setTimeout(() => (copied.value = false), 2000);
-            }}
-            class="bg-plum-700 hover:bg-plum-600 rounded-lg px-4 py-2 text-sm font-semibold text-white transition"
+            type="submit"
+            disabled={setGroupAction.isRunning}
+            class="bg-plum-700 hover:bg-plum-600 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
           >
-            {copied.value ? "Copied!" : "Copy link"}
+            {setGroupAction.isRunning ? "Saving…" : "Save"}
           </button>
-          <a
-            href={shareUrl}
-            target="_blank"
-            rel="noopener"
-            class="border-plum-200 text-plum-700 hover:bg-plum-50 rounded-lg border px-4 py-2 text-sm font-semibold transition"
-          >
-            Preview
-          </a>
-        </div>
-        <div class="border-plum-100 mt-4 border-t pt-4">
-          <ShareQr
-            url={shareUrl}
-            title={`Volunteer: ${event.name}`}
-            text={`Can you lend a hand at ${event.name}? Pick a slot here:`}
-          />
-        </div>
+          {event.group_id && (
+            <Link
+              href={`/admin/groups/${event.group_id}/`}
+              class="border-plum-200 text-plum-700 hover:bg-plum-50 rounded-lg border px-4 py-2 text-sm font-semibold transition"
+            >
+              View group
+            </Link>
+          )}
+        </Form>
+        {setGroupAction.value?.failed && setGroupAction.value?.message && (
+          <p role="alert" class="mt-2 text-sm font-semibold text-red-600">
+            {setGroupAction.value.message}
+          </p>
+        )}
+        {setGroupAction.value?.success && (
+          <p class="mt-2 text-sm font-semibold text-green-700">
+            Group updated.
+          </p>
+        )}
       </div>
 
       <div class="space-y-4">

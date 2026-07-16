@@ -7,6 +7,15 @@ export interface EventRecord {
   description: string;
   event_date: string;
   location: string;
+  group_id: string | null;
+  created_at: string;
+}
+
+export interface EventGroupRecord {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
   created_at: string;
 }
 
@@ -50,6 +59,7 @@ export interface NewEvent {
   description: string;
   event_date: string;
   location: string;
+  group_id: string | null;
   slots: NewSlot[];
 }
 
@@ -57,14 +67,22 @@ export function eventPath(event: Pick<EventRecord, "id" | "slug">): string {
   return `/e/${event.id}/${event.slug}/`;
 }
 
+export function groupPath(group: Pick<EventGroupRecord, "id" | "slug">): string {
+  return `/g/${group.id}/${group.slug}/`;
+}
+
+// Group entries share the EVENT_LINKS namespace with events; the prefix keeps
+// a group id from ever resolving as an event link (and vice versa).
+const GROUP_LINK_PREFIX = "group:";
+
 export async function createEvent(env: Env, data: NewEvent): Promise<EventRecord> {
   const id = newId();
   const slug = slugify(data.name);
   const statements = [
     env.DB.prepare(
-      `INSERT INTO events (id, slug, name, description, event_date, location)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).bind(id, slug, data.name, data.description, data.event_date, data.location),
+      `INSERT INTO events (id, slug, name, description, event_date, location, group_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(id, slug, data.name, data.description, data.event_date, data.location, data.group_id),
     ...data.slots.map((slot, i) =>
       env.DB.prepare(
         `INSERT INTO slots (id, event_id, label, starts_at, ends_at, capacity, position)
@@ -90,6 +108,73 @@ export async function getEvent(env: Env, id: string): Promise<EventRecord | null
 
 export async function getCanonicalSlug(env: Env, id: string): Promise<string | null> {
   return env.EVENT_LINKS.get(id);
+}
+
+export interface NewEventGroup {
+  name: string;
+  description: string;
+}
+
+export async function createGroup(
+  env: Env,
+  data: NewEventGroup,
+): Promise<EventGroupRecord> {
+  const id = newId();
+  const slug = slugify(data.name);
+  await env.DB.prepare(
+    `INSERT INTO event_groups (id, slug, name, description) VALUES (?, ?, ?, ?)`,
+  )
+    .bind(id, slug, data.name, data.description)
+    .run();
+  // Remember the canonical slug so shared links with a stale slug still resolve.
+  await env.EVENT_LINKS.put(GROUP_LINK_PREFIX + id, slug);
+  const group = await getGroup(env, id);
+  if (!group) {
+    throw new Error("Event group was not created");
+  }
+  return group;
+}
+
+export async function getGroup(env: Env, id: string): Promise<EventGroupRecord | null> {
+  return env.DB.prepare(`SELECT * FROM event_groups WHERE id = ?`)
+    .bind(id)
+    .first<EventGroupRecord>();
+}
+
+export async function getCanonicalGroupSlug(env: Env, id: string): Promise<string | null> {
+  return env.EVENT_LINKS.get(GROUP_LINK_PREFIX + id);
+}
+
+export interface EventGroupListItem extends EventGroupRecord {
+  event_count: number;
+}
+
+export async function listGroups(env: Env): Promise<EventGroupListItem[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT g.*,
+        (SELECT COUNT(*) FROM events e WHERE e.group_id = g.id) AS event_count
+     FROM event_groups g ORDER BY g.created_at DESC`,
+  ).all<EventGroupListItem>();
+  return results;
+}
+
+export async function setEventGroup(
+  env: Env,
+  eventId: string,
+  groupId: string | null,
+): Promise<void> {
+  await env.DB.prepare(`UPDATE events SET group_id = ? WHERE id = ?`)
+    .bind(groupId, eventId)
+    .run();
+}
+
+/** Deletes a group; its events survive, just no longer grouped. */
+export async function deleteGroup(env: Env, id: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE events SET group_id = NULL WHERE group_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM event_groups WHERE id = ?`).bind(id),
+  ]);
+  await env.EVENT_LINKS.delete(GROUP_LINK_PREFIX + id);
 }
 
 export async function getSlotsWithCounts(env: Env, eventId: string): Promise<SlotWithCount[]> {
@@ -126,14 +211,26 @@ export interface EventListItem extends EventRecord {
   volunteer_count: number;
 }
 
+const EVENT_LIST_SELECT = `SELECT e.*,
+    (SELECT COUNT(*) FROM slots s WHERE s.event_id = e.id) AS slot_count,
+    (SELECT COALESCE(SUM(s.capacity), 0) FROM slots s WHERE s.event_id = e.id) AS capacity_total,
+    (SELECT COUNT(*) FROM volunteers v JOIN slots s ON s.id = v.slot_id WHERE s.event_id = e.id) AS volunteer_count
+  FROM events e`;
+
 export async function listEvents(env: Env): Promise<EventListItem[]> {
   const { results } = await env.DB.prepare(
-    `SELECT e.*,
-        (SELECT COUNT(*) FROM slots s WHERE s.event_id = e.id) AS slot_count,
-        (SELECT COALESCE(SUM(s.capacity), 0) FROM slots s WHERE s.event_id = e.id) AS capacity_total,
-        (SELECT COUNT(*) FROM volunteers v JOIN slots s ON s.id = v.slot_id WHERE s.event_id = e.id) AS volunteer_count
-     FROM events e ORDER BY e.event_date DESC, e.created_at DESC`,
+    `${EVENT_LIST_SELECT} ORDER BY e.event_date DESC, e.created_at DESC`,
   ).all<EventListItem>();
+  return results;
+}
+
+/** Events in a group, soonest first (chronological for the landing page). */
+export async function listGroupEvents(env: Env, groupId: string): Promise<EventListItem[]> {
+  const { results } = await env.DB.prepare(
+    `${EVENT_LIST_SELECT} WHERE e.group_id = ? ORDER BY e.event_date ASC, e.created_at ASC`,
+  )
+    .bind(groupId)
+    .all<EventListItem>();
   return results;
 }
 

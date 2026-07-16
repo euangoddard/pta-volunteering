@@ -44,27 +44,34 @@ function timingSafeEqual(a: string, b: string): boolean {
 export default component$(() => {
   const loc = useLocation();
   const isNew = loc.url.pathname.startsWith("/admin/new");
+  const isGroups = loc.url.pathname.startsWith("/admin/groups");
+  const isEvents = !isNew && !isGroups;
+  const linkClass = (active: boolean) => [
+    "font-semibold",
+    active ? "text-plum-700" : "hover:text-plum-700 text-gray-500",
+  ];
   return (
     <div>
       <nav class="border-plum-100 mb-6 flex items-center justify-between rounded-xl border bg-white px-4 py-3 shadow-sm">
         <div class="flex items-center gap-4">
           <Link
             href="/admin/"
-            aria-current={!isNew ? "page" : undefined}
-            class={[
-              "font-semibold",
-              !isNew ? "text-plum-700" : "hover:text-plum-700 text-gray-500",
-            ]}
+            aria-current={isEvents ? "page" : undefined}
+            class={linkClass(isEvents)}
           >
             Events
           </Link>
           <Link
+            href="/admin/groups/"
+            aria-current={isGroups ? "page" : undefined}
+            class={linkClass(isGroups)}
+          >
+            Groups
+          </Link>
+          <Link
             href="/admin/new/"
             aria-current={isNew ? "page" : undefined}
-            class={[
-              "font-semibold",
-              isNew ? "text-plum-700" : "hover:text-plum-700 text-gray-500",
-            ]}
+            class={linkClass(isNew)}
           >
             New event
           </Link>
