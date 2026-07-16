@@ -68,17 +68,24 @@ export default component$(() => {
           >
             Groups
           </Link>
+        </div>
+        <div class="flex items-center gap-3">
           <Link
             href="/admin/new/"
             aria-current={isNew ? "page" : undefined}
-            class={linkClass(isNew)}
+            class={[
+              "rounded-lg px-3 py-1.5 text-sm font-semibold shadow-sm transition",
+              isNew
+                ? "bg-flame-700 text-white"
+                : "bg-flame-600 hover:bg-flame-500 text-white",
+            ]}
           >
-            New event
+            + New event
           </Link>
+          <span class="bg-plum-100 text-plum-700 rounded-full px-3 py-1 text-xs font-bold tracking-wide uppercase">
+            Admin
+          </span>
         </div>
-        <span class="bg-plum-100 text-plum-700 rounded-full px-3 py-1 text-xs font-bold tracking-wide uppercase">
-          Admin
-        </span>
       </nav>
       <Slot />
     </div>
