@@ -71,9 +71,18 @@ export default component$(() => {
   const deleteAction = useDeleteEvent();
   const setGroupAction = useSetGroup();
   const confirmingDelete = useSignal(false);
+  const emailsCopied = useSignal(false);
   const { event, slots, groups, shareUrl } = data.value;
   const totalVolunteers = slots.reduce((n, s) => n + s.volunteer_count, 0);
   const totalCapacity = slots.reduce((n, s) => n + s.capacity, 0);
+  const uniqueEmails = new Map<string, string>();
+  for (const slot of slots) {
+    for (const v of slot.volunteers) {
+      const email = v.email.trim();
+      if (email) uniqueEmails.set(email.toLowerCase(), email);
+    }
+  }
+  const emailList = [...uniqueEmails.values()].join("; ");
 
   return (
     <div class="space-y-6">
@@ -177,7 +186,24 @@ export default component$(() => {
       </div>
 
       <div class="space-y-4">
-        <h2 class="text-plum-700 text-xl font-bold">Who's volunteering</h2>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-plum-700 text-xl font-bold">Who's volunteering</h2>
+          {uniqueEmails.size > 0 && (
+            <button
+              type="button"
+              onClick$={async () => {
+                await navigator.clipboard.writeText(emailList);
+                emailsCopied.value = true;
+                setTimeout(() => (emailsCopied.value = false), 2000);
+              }}
+              class="border-plum-200 text-plum-700 hover:bg-plum-50 rounded-lg border px-4 py-2 text-sm font-semibold transition"
+            >
+              {emailsCopied.value
+                ? "Copied!"
+                : `Copy ${uniqueEmails.size} email ${uniqueEmails.size === 1 ? "address" : "addresses"}`}
+            </button>
+          )}
+        </div>
         {slots.map((slot) => (
           <div
             key={slot.id}
