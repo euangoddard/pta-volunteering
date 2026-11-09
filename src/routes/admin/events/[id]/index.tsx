@@ -101,16 +101,24 @@ export default component$(() => {
               {event.location && <> · {event.location}</>}
             </p>
           </div>
-          <span
-            class={[
-              "rounded-full px-4 py-1.5 font-bold",
-              totalVolunteers >= totalCapacity
-                ? "bg-green-100 text-green-700"
-                : "bg-flame-100 text-flame-700",
-            ]}
-          >
-            {totalVolunteers} / {totalCapacity} volunteers
-          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class={[
+                "rounded-full px-4 py-1.5 font-bold",
+                totalVolunteers >= totalCapacity
+                  ? "bg-green-100 text-green-700"
+                  : "bg-flame-100 text-flame-700",
+              ]}
+            >
+              {totalVolunteers} / {totalCapacity} volunteers
+            </span>
+            <Link
+              href={`/admin/events/${event.id}/edit/`}
+              class="border-plum-200 text-plum-700 hover:bg-plum-50 rounded-lg border px-4 py-2 text-sm font-semibold transition"
+            >
+              Edit event
+            </Link>
+          </div>
         </div>
         {event.description && (
           <p class="mt-3 whitespace-pre-line text-gray-600">

@@ -100,6 +100,50 @@ export async function createEvent(env: Env, data: NewEvent): Promise<EventRecord
   return event;
 }
 
+export interface EditedSlot extends NewSlot {
+  /** Present for slots that already exist; absent for newly added ones. */
+  id?: string;
+}
+
+export interface EditedEvent extends Omit<NewEvent, "slots"> {
+  slots: EditedSlot[];
+}
+
+/**
+ * Updates an event's details and slots. Existing slots are updated in place
+ * (keeping their signups), new ones are inserted, and existing slots left out
+ * of `data.slots` are deleted — but only if nobody has signed up to them.
+ */
+export async function updateEvent(env: Env, id: string, data: EditedEvent): Promise<void> {
+  const slug = slugify(data.name);
+  const keptIds = data.slots.flatMap((slot) => (slot.id ? [slot.id] : []));
+  const keptPlaceholders = keptIds.map(() => "?").join(", ");
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE events SET slug = ?, name = ?, description = ?, event_date = ?, location = ?, group_id = ?
+       WHERE id = ?`,
+    ).bind(slug, data.name, data.description, data.event_date, data.location, data.group_id, id),
+    env.DB.prepare(
+      `DELETE FROM slots WHERE event_id = ?
+         ${keptIds.length ? `AND id NOT IN (${keptPlaceholders})` : ""}
+         AND NOT EXISTS (SELECT 1 FROM volunteers v WHERE v.slot_id = slots.id)`,
+    ).bind(id, ...keptIds),
+    ...data.slots.map((slot, i) =>
+      slot.id
+        ? env.DB.prepare(
+            `UPDATE slots SET label = ?, starts_at = ?, ends_at = ?, capacity = ?, position = ?
+             WHERE id = ? AND event_id = ?`,
+          ).bind(slot.label, slot.starts_at, slot.ends_at, slot.capacity, i, slot.id, id)
+        : env.DB.prepare(
+            `INSERT INTO slots (id, event_id, label, starts_at, ends_at, capacity, position)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          ).bind(newId(), id, slot.label, slot.starts_at, slot.ends_at, slot.capacity, i),
+    ),
+  ]);
+  // Keep the canonical slug in sync; old links redirect to the new slug.
+  await env.EVENT_LINKS.put(id, slug);
+}
+
 export async function getEvent(env: Env, id: string): Promise<EventRecord | null> {
   return env.DB.prepare(`SELECT * FROM events WHERE id = ?`)
     .bind(id)
